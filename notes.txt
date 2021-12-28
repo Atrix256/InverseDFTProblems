@@ -1,0 +1,8 @@
+the source images were made with void and cluster
+
+TODO:
+* show their values and DFT. as csvs? nmaybe make graphs?
+* go the other way - make some white noise and multiply by inverted gaussian etc then IDFT.
+* show histogram of these and V&C noise.
+* show how the IDFT noise isn't 0 to 1 too
+* make some different types of noise? red, blue, green, purple?
