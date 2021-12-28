@@ -1,4 +1,7 @@
-the source images were made with void and cluster
+Notes:
+* the source images were made with void and cluster
+* I zeroed out DC term from the source DFTs
+? do we need to show the average of a lot of blue noise generated or anything?
 
 TODO:
 * show their values and DFT. as csvs? nmaybe make graphs?
