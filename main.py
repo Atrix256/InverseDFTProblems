@@ -33,8 +33,6 @@ for generatedSize in generatedSizes:
     for i in range(int(generatedSize/2)-1):
         randomlist[int(generatedSize/2)+1+i] = np.conj(randomlist[int(generatedSize/2)-1-i])
 
-    # TODO: the blue noise real valued signals don't make conjugate results.
-
     # make a 1d gaussian with a peak where 0hz DC is going to be
     l = generatedSize+1
     sig = 1.9 * float(generatedSize) / 8.0
@@ -48,32 +46,26 @@ for generatedSize in generatedSizes:
         plt.plot(x, gauss)
         plt.show()
 
-    # TODO: gauss needs to be complex. need to multiply both real and imaginary by gauss scalar.
-
-    # make LPF and HPF
+    # make LPF and HPF    
     LPF = randomlist * gauss
     HPF = randomlist - LPF
 
     # Make DC be 1/2 * pixelCount
-    LPF[int(generatedSize/2)] = 0.5
-    HPF[int(generatedSize/2)] = 0.5
     HPF = HPF * generatedSize
     LPF = LPF * generatedSize
-    # TODO: i'm not 100% sure if this is correct, besides the DC term
+    LPF[int(generatedSize/2)] = (generatedSize-1)/2
+    HPF[int(generatedSize/2)] = (generatedSize-1)/2
 
     # IDFT
     signal = np.fft.ifftn(np.fft.ifftshift(HPF))
 
-    # Normalize the signal
-    signal = np.real(signal)
-    signalmin = np.amin(signal)
-    signalmax = np.amax(signal)
-    signal = (signal - signalmin) / (signalmax - signalmin)
+    # TODO: signal should only have real values but apparently has some imaginary still?
+    # TODO: output textures of the idft blue noise? should stretch them vertically so they are easier to see
 
-    dfty = HPF
+    dfty = np.abs(HPF)
 
     # cosmetic modifications to the DFT    
-    #dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+    dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
     dfty = np.append(dfty, dfty[0]) # duplicate the negative dft frequency to the positive
 
     # Graph the DFT
@@ -87,9 +79,56 @@ for generatedSize in generatedSizes:
     fig.savefig("out/" + sourceImg + ".dft.png", bbox_inches='tight')
     plt.close(fig)
 
-    # TODO: clean up all the above!
+    # Graph the raw values
+    signal = np.real(signal)
+    y = signal
+    x = np.arange(y.shape[0])
+    plt.plot(x, y)
+    ax = plt.gca()
+    ax.set_xlim([0.0, y.shape[0]-1])
+    ax.set_ylim([0.0, 1.0])
+    plt.title(sourceImg + " Values") 
+    plt.xlabel("Index") 
+    plt.ylabel("Value") 
+    fig = plt.gcf()
+    fig.savefig("out/" + sourceImg + ".valuesraw.png", bbox_inches='tight')
+    plt.close(fig)
+
+    # Make Raw Histogram
+    if False:
+        plt.title(sourceImg + " Histogram") 
+        plt.xlabel("Value") 
+        plt.ylabel("Count") 
+        plt.hist(y, 256, facecolor='blue', alpha=0.5)
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".histogramraw.png", bbox_inches='tight')
+        plt.close(fig)
+
+    # DEBUG: verify dft
+    if True:
+        # Make DFT
+        dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
+        dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+        dfty = np.append(dfty, dfty[0])
+        
+        # Graph the DFT
+        plt.title(sourceImg + " DFT") 
+        plt.xlabel("Hertz") 
+        plt.ylabel("Magnitude")     
+        x = np.arange(dfty.shape[0])
+        x = x - int((dfty.shape[0]-1) / 2)
+        plt.plot(x, dfty)
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".dft2raw.png", bbox_inches='tight')
+        plt.close(fig)    
+
+    # Normalize the signal
+    signalmin = np.amin(signal)
+    signalmax = np.amax(signal)
+    signal = (signal - signalmin) / (signalmax - signalmin)
 
     # Graph the values
+    signal = np.real(signal)
     y = signal
     x = np.arange(y.shape[0])
     plt.plot(x, y)
@@ -101,16 +140,37 @@ for generatedSize in generatedSizes:
     plt.ylabel("Value") 
     fig = plt.gcf()
     fig.savefig("out/" + sourceImg + ".values.png", bbox_inches='tight')
-    plt.close(fig)
+    plt.close(fig)    
 
     # Make Histogram
-    plt.title(sourceImg + " Histogram") 
-    plt.xlabel("Value") 
-    plt.ylabel("Count") 
-    plt.hist(y, 256, facecolor='blue', alpha=0.5)
-    fig = plt.gcf()
-    fig.savefig("out/" + sourceImg + ".histogram.png", bbox_inches='tight')
-    plt.close(fig)
+    if True:
+        plt.title(sourceImg + " Histogram") 
+        plt.xlabel("Value") 
+        plt.ylabel("Count") 
+        plt.hist(y, 256, facecolor='blue', alpha=0.5)
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".histogram.png", bbox_inches='tight')
+        plt.close(fig)
+
+    # DEBUG: verify dft
+    if True:
+        # Make DFT
+        dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
+        dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+        dfty = np.append(dfty, dfty[0])
+        
+        # Graph the DFT
+        plt.title(sourceImg + " DFT") 
+        plt.xlabel("Hertz") 
+        plt.ylabel("Magnitude")     
+        x = np.arange(dfty.shape[0])
+        x = x - int((dfty.shape[0]-1) / 2)
+        plt.plot(x, dfty)
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".dft2.png", bbox_inches='tight')
+        plt.close(fig)
+
+sys.exit()
 
 # Process blue noise made with void and cluster
 for sourceImg in sourceImgs:
@@ -143,13 +203,9 @@ for sourceImg in sourceImgs:
 
     # Make DFT
     dfty = np.abs(np.fft.fftshift(np.fft.fftn(y)))
-    #dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+    dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
     dfty = np.append(dfty, dfty[0])
 
-    # TODO: temp
-    print(np.fft.fftshift(np.fft.fftn(y)))
-    sys.exit()
-    
     # Graph the DFT
     plt.title(sourceImg + " DFT") 
     plt.xlabel("Hertz") 
@@ -160,4 +216,4 @@ for sourceImg in sourceImgs:
     fig = plt.gcf()
     fig.savefig("out/" + sourceImg + ".dft.png", bbox_inches='tight')
     plt.close(fig)
-    
+

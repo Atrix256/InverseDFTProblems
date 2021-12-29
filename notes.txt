@@ -1,6 +1,7 @@
 Notes:
 * the source images were made with void and cluster
 * I zeroed out DC term from the source DFTs
+* i normalized the signal, which changes the DFT
 
 TODO:
 * show their values and DFT. as csvs? nmaybe make graphs?
