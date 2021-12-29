@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import sys
+import cmath
+import math
 
 os.makedirs("out", exist_ok=True)
 
@@ -23,10 +25,15 @@ for generatedSize in generatedSizes:
     sourceImg = "idft" + str(generatedSize)
     print(sourceImg)
 
-    # the random numbers need to be symmetric around DC (generatedSize/2)
-    randomlist = np.random.random(generatedSize)
+    # Make random complex numbers that are 
+    randomlist = np.empty([generatedSize],dtype=complex)
+    for i in range(int(generatedSize/2)):
+        randomlist[i] = cmath.rect(np.random.random(1), np.random.random(1)* math.pi * 2)
+
     for i in range(int(generatedSize/2)-1):
-        randomlist[int(generatedSize/2)+1+i] = randomlist[int(generatedSize/2)-1-i]
+        randomlist[int(generatedSize/2)+1+i] = np.conj(randomlist[int(generatedSize/2)-1-i])
+
+    # TODO: the blue noise real valued signals don't make conjugate results.
 
     # make a 1d gaussian with a peak where 0hz DC is going to be
     l = generatedSize+1
@@ -41,26 +48,27 @@ for generatedSize in generatedSizes:
         plt.plot(x, gauss)
         plt.show()
 
+    # TODO: gauss needs to be complex. need to multiply both real and imaginary by gauss scalar.
+
     # make LPF and HPF
     LPF = randomlist * gauss
     HPF = randomlist - LPF
 
     # Make DC be 1/2 * pixelCount
-    LPF[int(generatedSize/2)] = 1 #generatedSize / 2
-    HPF[int(generatedSize/2)] = 1 #generatedSize / 2
-    HPF = HPF * generatedSize / 2
-    LPF = LPF * generatedSize / 2
-    # TODO: i'm not sure if this is correct
+    LPF[int(generatedSize/2)] = 0.5
+    HPF[int(generatedSize/2)] = 0.5
+    HPF = HPF * generatedSize
+    LPF = LPF * generatedSize
+    # TODO: i'm not 100% sure if this is correct, besides the DC term
 
     # IDFT
-    signal = np.fft.ifftn(HPF)
+    signal = np.fft.ifftn(np.fft.ifftshift(HPF))
 
     # Normalize the signal
     signal = np.real(signal)
     signalmin = np.amin(signal)
     signalmax = np.amax(signal)
     signal = (signal - signalmin) / (signalmax - signalmin)
-
 
     dfty = HPF
 
@@ -81,8 +89,6 @@ for generatedSize in generatedSizes:
 
     # TODO: clean up all the above!
 
-    # TODO: may need random phase too. random polar or random complex
-    
     # Graph the values
     y = signal
     x = np.arange(y.shape[0])
@@ -139,6 +145,10 @@ for sourceImg in sourceImgs:
     dfty = np.abs(np.fft.fftshift(np.fft.fftn(y)))
     #dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
     dfty = np.append(dfty, dfty[0])
+
+    # TODO: temp
+    print(np.fft.fftshift(np.fft.fftn(y)))
+    sys.exit()
     
     # Graph the DFT
     plt.title(sourceImg + " DFT") 
