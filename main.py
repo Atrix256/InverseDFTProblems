@@ -17,6 +17,7 @@ sourceImgs = [
     "bn64",
     "bn128",
     "bn256",
+    "bn10240",
 ]
 
 generatedSizes=[8, 16, 32, 64, 128, 256, 10240]
