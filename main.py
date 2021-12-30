@@ -108,7 +108,7 @@ for generatedSize in generatedSizes:
         ax = plt.gca()
         ax.set_xlim([0.0, y.shape[0]-1])
         ax.set_ylim([0.0, 1.0])
-        plt.title(sourceImg + " Values") 
+        plt.title(sourceImg + " IDFT Raw Values") 
         plt.xlabel("Index") 
         plt.ylabel("Value") 
         fig = plt.gcf()
@@ -156,7 +156,7 @@ for generatedSize in generatedSizes:
         ax = plt.gca()
         ax.set_xlim([0.0, y.shape[0]-1])
         ax.set_ylim([0.0, 1.0])
-        plt.title(sourceImg + " Values") 
+        plt.title(sourceImg + " IDFT Normalized Values") 
         plt.xlabel("Index") 
         plt.ylabel("Value") 
         fig = plt.gcf()
@@ -192,15 +192,39 @@ for generatedSize in generatedSizes:
             plt.close(fig)
 
         # tile the signal to be a 256x256 image
-        if generatedSize <= 256:
+        generatedSize_ = min(generatedSize, 256)
+        if True: #generatedSize <= 256:
             row = Image.new('L', (1, 256), (255))
             signalImage = Image.fromarray(np.uint8(signal*255))
-            for i in range(int(256/generatedSize)):
-                row.paste(signalImage, (0, i * generatedSize))
+            for i in range(int(256/generatedSize_)):
+                row.paste(signalImage, (0, i * generatedSize_))
             out = Image.new('L', (256, 256), (255))
             for i in range(256):
                 out.paste(row, (i, 0))
             out.save("out/" + sourceImg + ".png")
+
+        # Make the composite diagram
+        im1 = Image.open("out/" + sourceImg + ".png")
+        im2 = Image.open("out/" + sourceImg + ".valuesraw.png")
+        im3 = Image.open("out/" + sourceImg + ".values.png")
+        im4 = Image.open("out/" + sourceImg + ".histogram.png")
+        im5 = Image.open("out/" + sourceImg + ".dft.png")
+
+        height = max(im1.size[1], max(im2.size[1], max(im3.size[1], max(im4.size[1], im5.size[1])))) + 6
+        width = im1.size[0] + im2.size[0] + im3.size[0] + im4.size[0] + im5.size[0] + 18
+        
+        imout = Image.new('RGB',(width, height), (255, 255, 255))
+        x = 3
+        imout.paste(im1, (x, int((height - im1.size[1]) / 2)))
+        x = x + im1.size[0] + 3
+        imout.paste(im2, (x, int((height - im2.size[1]) / 2)))
+        x = x + im2.size[0] + 3
+        imout.paste(im3, (x, int((height - im3.size[1]) / 2)))
+        x = x + im3.size[0] + 3
+        imout.paste(im4, (x, int((height - im4.size[1]) / 2)))
+        x = x + im4.size[0] + 3
+        imout.paste(im5, (x, int((height - im5.size[1]) / 2)))
+        imout.save("out/_" + sourceImg + ".png")
 
 # Process blue noise made with void and cluster
 for sourceImg in sourceImgs:
@@ -248,8 +272,8 @@ for sourceImg in sourceImgs:
     plt.close(fig)
 
     # tile the signal to be a 256x256 image
-    generatedSize = y.shape[0]
-    if generatedSize <= 256:
+    generatedSize = min(y.shape[0], 256)
+    if True: #generatedSize <= 256:
         row = Image.new('L', (1, 256), (255))
         signalImage = Image.fromarray(np.uint8(y*255))
         for i in range(int(256/generatedSize)):
@@ -258,3 +282,39 @@ for sourceImg in sourceImgs:
         for i in range(256):
             out.paste(row, (i, 0))
         out.save("out/" + sourceImg + ".png")
+
+    # Make the composite diagram
+    im1 = Image.open("out/" + sourceImg + ".png")
+    im2 = Image.open("out/" + sourceImg + ".values.png")
+    im3 = Image.open("out/" + sourceImg + ".histogram.png")
+    im4 = Image.open("out/" + sourceImg + ".dft.png")
+
+    height = max(im1.size[1], max(im2.size[1], max(im3.size[1], im4.size[1]))) + 6
+    width = im1.size[0] + im2.size[0] + im3.size[0] + im4.size[0] + 15
+    
+    imout = Image.new('RGB',(width, height), (255, 255, 255))
+    x = 3
+    imout.paste(im1, (x, int((height - im1.size[1]) / 2)))
+    x = x + im1.size[0] + 3
+    imout.paste(im2, (x, int((height - im2.size[1]) / 2)))
+    x = x + im2.size[0] + 3
+    imout.paste(im3, (x, int((height - im3.size[1]) / 2)))
+    x = x + im3.size[0] + 3
+    imout.paste(im4, (x, int((height - im4.size[1]) / 2)))
+    imout.save("out/_" + sourceImg + ".png")
+
+focus10240 = ["bn10240", "idft10240_HPF"]
+for sourceImg in focus10240:
+    im1 = Image.open("out/" + sourceImg + ".histogram.png")
+    im2 = Image.open("out/" + sourceImg + ".dft.png")
+
+    height = max(im1.size[1], im2.size[1])
+    width = im1.size[0] + im2.size[0] + 9
+
+    imout = Image.new('RGB',(width, height), (255, 255, 255))
+    x = 3
+    imout.paste(im1, (x, int((height - im1.size[1]) / 2)))
+    x = x + im1.size[0] + 3
+    imout.paste(im2, (x, int((height - im2.size[1]) / 2)))
+
+    imout.save("out/_focus10240_" + sourceImg + ".png")
