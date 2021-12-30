@@ -6,6 +6,7 @@ import random
 import sys
 import cmath
 import math
+from PIL import Image, ImageFont, ImageDraw 
 
 os.makedirs("out", exist_ok=True)
 
@@ -18,7 +19,7 @@ sourceImgs = [
     "bn256",
 ]
 
-generatedSizes=[8, 16, 32, 64, 128, 256]
+generatedSizes=[8, 16, 32, 64, 128, 256, 10240]
 
 # Generate noise via IDFT
 for generatedSize in generatedSizes:
@@ -28,7 +29,10 @@ for generatedSize in generatedSizes:
     # Make random complex numbers that are 
     randomlist = np.empty([generatedSize],dtype=complex)
     for i in range(int(generatedSize/2)):
-        randomlist[i] = cmath.rect(np.random.random(1), np.random.random(1)* math.pi * 2)
+        angle = 0.0
+        if i > 0:
+            angle = np.random.random(1)* math.pi * 2
+        randomlist[i] = cmath.rect(np.random.random(1), angle)
 
     for i in range(int(generatedSize/2)-1):
         randomlist[int(generatedSize/2)+1+i] = np.conj(randomlist[int(generatedSize/2)-1-i])
@@ -56,61 +60,34 @@ for generatedSize in generatedSizes:
     LPF[int(generatedSize/2)] = (generatedSize-1)/2
     HPF[int(generatedSize/2)] = (generatedSize-1)/2
 
-    # IDFT
-    signal = np.fft.ifftn(np.fft.ifftshift(HPF))
+    DFTs = [LPF, HPF]
+    labels = ["LPF", "HPF"]
 
-    # TODO: signal should only have real values but apparently has some imaginary still?
-    # TODO: output textures of the idft blue noise? should stretch them vertically so they are easier to see
+    for dft, label in zip(DFTs, labels):
 
-    dfty = np.abs(HPF)
-
-    # cosmetic modifications to the DFT    
-    dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
-    dfty = np.append(dfty, dfty[0]) # duplicate the negative dft frequency to the positive
-
-    # Graph the DFT
-    plt.title(sourceImg + " DFT") 
-    plt.xlabel("Hertz") 
-    plt.ylabel("Magnitude")     
-    x = np.arange(dfty.shape[0])
-    x = x - int((dfty.shape[0]-1) / 2)
-    plt.plot(x, dfty)
-    fig = plt.gcf()
-    fig.savefig("out/" + sourceImg + ".dft.png", bbox_inches='tight')
-    plt.close(fig)
-
-    # Graph the raw values
-    signal = np.real(signal)
-    y = signal
-    x = np.arange(y.shape[0])
-    plt.plot(x, y)
-    ax = plt.gca()
-    ax.set_xlim([0.0, y.shape[0]-1])
-    ax.set_ylim([0.0, 1.0])
-    plt.title(sourceImg + " Values") 
-    plt.xlabel("Index") 
-    plt.ylabel("Value") 
-    fig = plt.gcf()
-    fig.savefig("out/" + sourceImg + ".valuesraw.png", bbox_inches='tight')
-    plt.close(fig)
-
-    # Make Raw Histogram
-    if False:
-        plt.title(sourceImg + " Histogram") 
-        plt.xlabel("Value") 
-        plt.ylabel("Count") 
-        plt.hist(y, 256, facecolor='blue', alpha=0.5)
-        fig = plt.gcf()
-        fig.savefig("out/" + sourceImg + ".histogramraw.png", bbox_inches='tight')
-        plt.close(fig)
-
-    # DEBUG: verify dft
-    if True:
-        # Make DFT
-        dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
-        dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
-        dfty = np.append(dfty, dfty[0])
+        sourceImg = "idft" + str(generatedSize) + "_" + label
+        print(label)
         
+        # IDFT
+        signal = np.fft.ifftn(np.fft.ifftshift(dft))
+
+        # DEBUG: make sure the imaginary part of the signal isn't significant
+        if False:
+            for signalSample in signal:
+                if np.imag(signalSample) > 0.1:
+                    print("===============")
+                    print("randomlist = " + str(randomlist))
+                    print("gauss = " + str(gauss))
+                    print("dft = " + str(dft))
+                    print("signal = " + str(signal))
+                    sys.exit()
+
+        dfty = np.abs(dft)
+
+        # cosmetic modifications to the DFT    
+        dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+        dfty = np.append(dfty, dfty[0]) # duplicate the negative dft frequency to the positive
+
         # Graph the DFT
         plt.title(sourceImg + " DFT") 
         plt.xlabel("Hertz") 
@@ -119,58 +96,110 @@ for generatedSize in generatedSizes:
         x = x - int((dfty.shape[0]-1) / 2)
         plt.plot(x, dfty)
         fig = plt.gcf()
-        fig.savefig("out/" + sourceImg + ".dft2raw.png", bbox_inches='tight')
+        fig.savefig("out/" + sourceImg + ".dft.png", bbox_inches='tight')
+        plt.close(fig)
+
+        # Graph the raw values
+        signal = np.real(signal)
+        y = signal
+        x = np.arange(y.shape[0])
+        plt.plot(x, y)
+        ax = plt.gca()
+        ax.set_xlim([0.0, y.shape[0]-1])
+        ax.set_ylim([0.0, 1.0])
+        plt.title(sourceImg + " Values") 
+        plt.xlabel("Index") 
+        plt.ylabel("Value") 
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".valuesraw.png", bbox_inches='tight')
+        plt.close(fig)
+
+        # Make Raw Histogram
+        if False:
+            plt.title(sourceImg + " Histogram") 
+            plt.xlabel("Value") 
+            plt.ylabel("Count") 
+            plt.hist(y, 256, facecolor='blue', alpha=0.5)
+            fig = plt.gcf()
+            fig.savefig("out/" + sourceImg + ".histogramraw.png", bbox_inches='tight')
+            plt.close(fig)
+
+        # DEBUG: verify dft
+        if False:
+            # Make DFT
+            dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
+            dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+            dfty = np.append(dfty, dfty[0])
+            
+            # Graph the DFT
+            plt.title(sourceImg + " DFT") 
+            plt.xlabel("Hertz") 
+            plt.ylabel("Magnitude")     
+            x = np.arange(dfty.shape[0])
+            x = x - int((dfty.shape[0]-1) / 2)
+            plt.plot(x, dfty)
+            fig = plt.gcf()
+            fig.savefig("out/" + sourceImg + ".dft2raw.png", bbox_inches='tight')
+            plt.close(fig)    
+
+        # Normalize the signal
+        signalmin = np.amin(signal)
+        signalmax = np.amax(signal)
+        signal = (signal - signalmin) / (signalmax - signalmin)
+
+        # Graph the values
+        signal = np.real(signal)
+        y = signal
+        x = np.arange(y.shape[0])
+        plt.plot(x, y)
+        ax = plt.gca()
+        ax.set_xlim([0.0, y.shape[0]-1])
+        ax.set_ylim([0.0, 1.0])
+        plt.title(sourceImg + " Values") 
+        plt.xlabel("Index") 
+        plt.ylabel("Value") 
+        fig = plt.gcf()
+        fig.savefig("out/" + sourceImg + ".values.png", bbox_inches='tight')
         plt.close(fig)    
 
-    # Normalize the signal
-    signalmin = np.amin(signal)
-    signalmax = np.amax(signal)
-    signal = (signal - signalmin) / (signalmax - signalmin)
+        # Make Histogram
+        if True:
+            plt.title(sourceImg + " Histogram") 
+            plt.xlabel("Value") 
+            plt.ylabel("Count") 
+            plt.hist(y, 256, facecolor='blue', alpha=0.5)
+            fig = plt.gcf()
+            fig.savefig("out/" + sourceImg + ".histogram.png", bbox_inches='tight')
+            plt.close(fig)
 
-    # Graph the values
-    signal = np.real(signal)
-    y = signal
-    x = np.arange(y.shape[0])
-    plt.plot(x, y)
-    ax = plt.gca()
-    ax.set_xlim([0.0, y.shape[0]-1])
-    ax.set_ylim([0.0, 1.0])
-    plt.title(sourceImg + " Values") 
-    plt.xlabel("Index") 
-    plt.ylabel("Value") 
-    fig = plt.gcf()
-    fig.savefig("out/" + sourceImg + ".values.png", bbox_inches='tight')
-    plt.close(fig)    
+        # DEBUG: verify dft
+        if False:
+            # Make DFT
+            dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
+            dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
+            dfty = np.append(dfty, dfty[0])
+            
+            # Graph the DFT
+            plt.title(sourceImg + " DFT") 
+            plt.xlabel("Hertz") 
+            plt.ylabel("Magnitude")     
+            x = np.arange(dfty.shape[0])
+            x = x - int((dfty.shape[0]-1) / 2)
+            plt.plot(x, dfty)
+            fig = plt.gcf()
+            fig.savefig("out/" + sourceImg + ".dft2.png", bbox_inches='tight')
+            plt.close(fig)
 
-    # Make Histogram
-    if True:
-        plt.title(sourceImg + " Histogram") 
-        plt.xlabel("Value") 
-        plt.ylabel("Count") 
-        plt.hist(y, 256, facecolor='blue', alpha=0.5)
-        fig = plt.gcf()
-        fig.savefig("out/" + sourceImg + ".histogram.png", bbox_inches='tight')
-        plt.close(fig)
-
-    # DEBUG: verify dft
-    if True:
-        # Make DFT
-        dfty = np.abs(np.fft.fftshift(np.fft.fftn(signal)))
-        dfty[int(dfty.shape[0] / 2)] = 0 # zero out DC
-        dfty = np.append(dfty, dfty[0])
-        
-        # Graph the DFT
-        plt.title(sourceImg + " DFT") 
-        plt.xlabel("Hertz") 
-        plt.ylabel("Magnitude")     
-        x = np.arange(dfty.shape[0])
-        x = x - int((dfty.shape[0]-1) / 2)
-        plt.plot(x, dfty)
-        fig = plt.gcf()
-        fig.savefig("out/" + sourceImg + ".dft2.png", bbox_inches='tight')
-        plt.close(fig)
-
-sys.exit()
+        # tile the signal to be a 256x256 image
+        if generatedSize <= 256:
+            row = Image.new('L', (1, 256), (255))
+            signalImage = Image.fromarray(np.uint8(signal*255))
+            for i in range(int(256/generatedSize)):
+                row.paste(signalImage, (0, i * generatedSize))
+            out = Image.new('L', (256, 256), (255))
+            for i in range(256):
+                out.paste(row, (i, 0))
+            out.save("out/_" + sourceImg + ".png")
 
 # Process blue noise made with void and cluster
 for sourceImg in sourceImgs:
