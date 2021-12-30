@@ -199,7 +199,7 @@ for generatedSize in generatedSizes:
             out = Image.new('L', (256, 256), (255))
             for i in range(256):
                 out.paste(row, (i, 0))
-            out.save("out/_" + sourceImg + ".png")
+            out.save("out/" + sourceImg + ".png")
 
 # Process blue noise made with void and cluster
 for sourceImg in sourceImgs:
@@ -246,3 +246,14 @@ for sourceImg in sourceImgs:
     fig.savefig("out/" + sourceImg + ".dft.png", bbox_inches='tight')
     plt.close(fig)
 
+    # tile the signal to be a 256x256 image
+    generatedSize = y.shape[0]
+    if generatedSize <= 256:
+        row = Image.new('L', (1, 256), (255))
+        signalImage = Image.fromarray(np.uint8(y*255))
+        for i in range(int(256/generatedSize)):
+            row.paste(signalImage, (0, i * generatedSize))
+        out = Image.new('L', (256, 256), (255))
+        for i in range(256):
+            out.paste(row, (i, 0))
+        out.save("out/" + sourceImg + ".png")
